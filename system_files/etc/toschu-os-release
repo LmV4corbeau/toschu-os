@@ -1,0 +1,6 @@
+NAME="toschu-os"
+ID="toschu-os"
+ID_LIKE="fedora"
+VERSION="1"
+PRETTY_NAME="toschu-os"
+HOME_URL="https://github.com/LmV4corbeau/toschu-os"
