@@ -69,11 +69,15 @@ Falls das Image nach dem ersten Push nicht öffentlich ist, im Repository unter 
 - `Containerfile` – Basisimage und Build-Schritte
 - `image-template.env` – lokaler Image-Name, Registry und Tag
 
-Die Basis lässt sich z. B. auf `bazzite-nvidia-open:stable` oder `bazzite-deck:stable` ändern:
+Die Basis ist im `Containerfile` mit Tag und Digest gepinnt. Beim Wechsel der Basis ebenfalls einen Digest ergänzen:
 
 ```dockerfile
-ARG BASE_IMAGE=ghcr.io/ublue-os/bazzite-nvidia-open:stable
+ARG BASE_IMAGE=ghcr.io/ublue-os/bazzite-nvidia-open:stable@sha256:...
 ```
+
+## Updates
+
+Basis-Image und GitHub Actions sind per Digest bzw. Commit-SHA gepinnt. Renovate (`renovate.json`) schlägt Aktualisierungen als Pull Request vor.
 
 ## Registry
 
