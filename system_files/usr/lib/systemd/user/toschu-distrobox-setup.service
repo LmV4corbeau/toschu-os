@@ -1,5 +1,5 @@
 [Unit]
-Description=Create prebuilt Distrobox containers
+Description=Create and update prebuilt Distrobox containers
 Documentation=https://github.com/LmV4corbeau/toschu-os
 
 [Service]

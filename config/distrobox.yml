@@ -2,7 +2,7 @@
 #
 # Images are built and published by .github/workflows/distrobox.yml.
 # Containers are written to /etc/distrobox/toschu.ini at bootc build time and
-# created by the toschu-distrobox-setup systemd user timer.
+# created and kept up to date by the toschu-distrobox-setup systemd user timer.
 #
 # To enable the example, replace `images: {}` with `images:` and uncomment the
 # block below. Do the same for `containers: {}`.

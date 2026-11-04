@@ -69,7 +69,7 @@ sudo rpm-ostree rebase ostree-unverified-registry:docker://ghcr.io/lmv4corbeau/t
 - Enable COPRs only for the install, then disable them again (`dnf5 copr disable ...`).
 - Flatpak apps are intentionally unpinned until issue #13 is resolved. AppImages require `version` and `sha256`; Renovate updates the version but not the checksum.
 - Prebuilt Distrobox images live in `config/distrobox.yml`. Each image needs a `context` under `distrobox/` containing a `Containerfile`, a `ref` under `ghcr.io/lmv4corbeau/toschu-os-distrobox/<name>:`, a `base` with both a tag and a digest, at least one `linux/amd64`/`linux/arm64` platform that the base actually supports, and an optional `packages` list passed as the `PACKAGES` build arg. An empty `images: {}` and `containers: {}` is valid.
-- `build_files/install-distrobox.sh` writes `/etc/distrobox/toschu.ini`; never modify Bazzite's `/etc/distrobox/distrobox.ini`. Distrobox is rootless and per-user, so the setup runs from a systemd user timer on first login, not from a system-wide service.
+- `build_files/install-distrobox.sh` writes `/etc/distrobox/toschu.ini`; never modify Bazzite's `/etc/distrobox/distrobox.ini`. Distrobox is rootless and per-user, so the setup runs from a systemd user timer on first login and daily to pick up newer images, not from a system-wide service.
 - `build_files/lib.sh` downloads `yq` at build time and verifies its SHA256. `build_files/yq-version.env` is shared with the Distrobox workflow; update `YQ_VERSION` and both architecture checksums together.
 - The `RUN --mount=type=bind,from=ctx` stage is required because `build_files/`, `config/`, `distrobox/`, and `system_files/` must not be copied into the final image.
 - `bootc container lint` must pass; do not remove it.

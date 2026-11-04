@@ -1,30 +1,43 @@
 #!/bin/bash
-# Create the prebuilt Distrobox containers on first login.
+# Create and update the prebuilt Distrobox containers.
 #
 # This runs as a systemd user service, so it is rootless and per-user.
 # The manifest is generated at image build time from config/distrobox.yml.
+#
+# The first run (or a run after the manifest changed) creates the containers.
+# Later runs pull the configured images and recreate a container when its
+# image changed, so the timer keeps the containers on the published images.
 
 set -euo pipefail
 
 readonly MANIFEST="${TOSCHU_DISTROBOX_MANIFEST:-/etc/distrobox/toschu.ini}"
+readonly MANAGER="${DBX_CONTAINER_MANAGER:-podman}"
+
+log() { printf 'toschu-distrobox-setup: %s\n' "$*"; }
+warn() { printf 'toschu-distrobox-setup: %s\n' "$*" >&2; }
 
 if [ "${EUID}" -eq 0 ]; then
-  echo "toschu-distrobox-setup: refusing to run as root" >&2
+  warn "refusing to run as root"
   exit 0
 fi
 
 if ! command -v distrobox >/dev/null 2>&1; then
-  echo "toschu-distrobox-setup: distrobox not found, skipping" >&2
+  warn "distrobox not found, skipping"
+  exit 0
+fi
+
+if ! command -v "$MANAGER" >/dev/null 2>&1; then
+  warn "$MANAGER not found, skipping"
   exit 0
 fi
 
 if [ ! -r "$MANIFEST" ]; then
-  echo "toschu-distrobox-setup: $MANIFEST not found, skipping" >&2
+  warn "$MANIFEST not found, skipping"
   exit 0
 fi
 
 if ! grep -Eq '^\[[^]]+\][[:space:]]*$' "$MANIFEST"; then
-  echo "toschu-distrobox-setup: no containers configured, skipping"
+  log "no containers configured, skipping"
   exit 0
 fi
 
@@ -33,16 +46,74 @@ state_home="${XDG_STATE_HOME:-$HOME/.local/state}"
 marker="$state_home/toschu-os/distrobox-setup.sha256"
 hash="$(sha256sum "$MANIFEST" | awk '{print $1}')"
 
-if [ -f "$marker" ] && [ "$(cat "$marker")" = "$hash" ]; then
+if [ ! -f "$marker" ] || [ "$(cat "$marker")" != "$hash" ]; then
+  log "creating containers from $MANIFEST"
+  if DBX_NON_INTERACTIVE=1 distrobox assemble create --file "$MANIFEST"; then
+    mkdir -p "$(dirname "$marker")"
+    printf '%s\n' "$hash" >"$marker"
+  else
+    warn "distrobox assemble failed; will retry on the next timer run"
+    exit 1
+  fi
   exit 0
 fi
 
-mkdir -p "$(dirname "$marker")"
+# Daily image check. The manifest is an INI file, so extract the container name
+# and image reference of each section.
+manifest_images() {
+  awk '
+    /^[[:space:]]*\[[^]]+\][[:space:]]*$/ {
+      name = $0
+      sub(/^[[:space:]]*\[/, "", name)
+      sub(/\][[:space:]]*$/, "", name)
+      next
+    }
+    /^[[:space:]]*image=/ {
+      image = $0
+      sub(/^[[:space:]]*image=/, "", image)
+      if (name != "") {
+        print name "\t" image
+      }
+    }
+  ' "$MANIFEST"
+}
 
-echo "toschu-distrobox-setup: creating containers from $MANIFEST"
-if DBX_NON_INTERACTIVE=1 distrobox assemble create --file "$MANIFEST"; then
-  printf '%s\n' "$hash" >"$marker"
+recreate_container() {
+  local name="$1"
+  log "recreating container '$name' with a newer image"
+  DBX_NON_INTERACTIVE=1 distrobox assemble create \
+    --replace --file "$MANIFEST" --name "$name"
+}
+
+update_containers() {
+  local name image current desired
+  while IFS=$'\t' read -r name image; do
+    if [ -z "$name" ] || [ -z "$image" ]; then
+      continue
+    fi
+
+    if ! "$MANAGER" container inspect "$name" >/dev/null 2>&1; then
+      recreate_container "$name" || return 1
+      continue
+    fi
+
+    if ! "$MANAGER" pull --quiet "$image" >/dev/null; then
+      warn "could not pull $image"
+      return 1
+    fi
+
+    current="$("$MANAGER" container inspect --format '{{.Image}}' "$name")"
+    desired="$("$MANAGER" image inspect --format '{{.Id}}' "$image")"
+
+    if [ "$current" != "$desired" ]; then
+      recreate_container "$name" || return 1
+    fi
+  done < <(manifest_images)
+}
+
+if update_containers; then
+  log "all containers are up to date"
 else
-  echo "toschu-distrobox-setup: distrobox assemble failed; will retry on the next timer run" >&2
+  warn "image update failed; will retry on the next timer run"
   exit 1
 fi

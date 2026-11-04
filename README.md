@@ -154,7 +154,9 @@ containers:
 
 The workflow `.github/workflows/distrobox.yml` builds and pushes images on `main`, and builds the `linux/amd64` image plus a smoke test on pull requests. An empty `images: {}` is valid: no images are built and the workflow still succeeds.
 
-The bootc image enables the `toschu-distrobox-setup.timer` systemd user timer. On first login it runs `distrobox assemble create --file /etc/distrobox/toschu.ini`, which pulls the prebuilt images and creates the containers. The timer is rootless and per-user; a hash marker in `~/.local/state/toschu-os/` prevents repeated work until the manifest changes. If the first run fails (for example, because the network is not ready), the timer retries every six hours.
+The bootc image enables the `toschu-distrobox-setup.timer` systemd user timer. On first login (and whenever the generated manifest changes) it runs `distrobox assemble create --file /etc/distrobox/toschu.ini`, which pulls the prebuilt images and creates the containers. A hash marker in `~/.local/state/toschu-os/` records the applied manifest.
+
+The timer also runs daily (`OnCalendar=daily`, with a random delay and `Persistent=true`) and at login. Each run pulls the configured images and recreates a container only when its image changed. The container's home directory is shared with the host and is kept, but packages installed inside the container are lost when it is recreated. If a run fails (for example, because the network is not ready), the next timer trigger retries it.
 
 To test an image locally:
 
