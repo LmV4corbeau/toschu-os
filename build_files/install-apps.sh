@@ -56,7 +56,7 @@ for ((i = 0; i < appimage_count; i++)); do
   fi
 
   url=${url//\{\{version\}\}/$version}
-  dest="/usr/local/bin/$name"
+  dest="/usr/bin/$name"
   tmp="${dest}.tmp"
   curl -fsSL -o "$tmp" "$url"
   printf '%s  %s\n' "$sha256" "$tmp" | sha256sum -c -

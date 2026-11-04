@@ -115,7 +115,7 @@ appimage:
     sha256: "..."
 ```
 
-AppImages are installed to `/usr/local/bin`. Renovate updates `version`, but it cannot calculate the new SHA256; update `sha256` manually in the pull request.
+AppImages are installed to `/usr/bin`. Renovate updates `version`, but it cannot calculate the new SHA256; update `sha256` manually in the pull request.
 
 ## Prebuilt Distrobox images
 
