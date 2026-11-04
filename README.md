@@ -1,24 +1,24 @@
 # toschu-os
 
-Eigenes bootc-/OCI-Image auf Basis von **Bazzite stable** (KDE, AMD/Intel). Das Image wird über ein `Containerfile` abgeleitet und mit Podman lokal oder über GitHub Actions gebaut und nach GitHub Container Registry (GHCR) veröffentlicht.
+Custom bootc/OCI image based on **Bazzite stable** (KDE, AMD/Intel). The image is derived from a `Containerfile` and built locally with Podman or via GitHub Actions, then published to the GitHub Container Registry (GHCR).
 
 - Repository: <https://github.com/LmV4corbeau/toschu-os>
 - Image: `ghcr.io/lmv4corbeau/toschu-os:stable`
-- Basis: `ghcr.io/ublue-os/bazzite:stable`
+- Base: `ghcr.io/ublue-os/bazzite:stable`
 
-## Voraussetzungen
+## Prerequisites
 
-- Ein bootc-/Fedora-Atomic-System (z. B. Bazzite) zum Testen
+- A bootc/Fedora Atomic system (e.g. Bazzite) for testing
 - `podman`, `just`, `git`
-- Ein GitHub-Konto und ein Personal Access Token mit `write:packages` (für lokale Pushes nach GHCR)
+- A GitHub account and a personal access token with `write:packages` (for local pushes to GHCR)
 
-## Lokal bauen
+## Build locally
 
 ```bash
 just build
 ```
 
-Für einen Rebase auf das lokal gebaute Image muss es in der rootful Podman-Storage liegen:
+To rebase onto the locally built image, it must be in rootful Podman storage:
 
 ```bash
 just build-root
@@ -26,7 +26,7 @@ sudo bootc switch --transport containers-storage localhost/toschu-os:stable
 sudo reboot
 ```
 
-Falls `bootc switch` nicht verfügbar ist:
+If `bootc switch` is unavailable:
 
 ```bash
 sudo rpm-ostree rebase ostree-unverified-registry:docker://ghcr.io/lmv4corbeau/toschu-os:stable
@@ -36,13 +36,13 @@ Rollback:
 
 ```bash
 sudo bootc rollback
-# oder
+# or
 sudo rpm-ostree rollback
 ```
 
-## Nach GHCR pushen
+## Push to GHCR
 
-Das Image heißt `ghcr.io/lmv4corbeau/toschu-os` (Owner und Image-Name müssen klein geschrieben sein).
+The image is named `ghcr.io/lmv4corbeau/toschu-os` (owner and image name must be lowercase).
 
 ```bash
 podman login ghcr.io -u LmV4corbeau
@@ -50,26 +50,26 @@ just build
 just push
 ```
 
-Das Login braucht ein PAT mit `write:packages` (classic) bzw. passende Package-Berechtigung bei fine-grained Tokens. Das automatische `GITHUB_TOKEN` funktioniert nur innerhalb von GitHub Actions.
+The login requires a PAT with `write:packages` (classic) or the corresponding package permission for fine-grained tokens. The automatic `GITHUB_TOKEN` only works inside GitHub Actions.
 
 ## GitHub Actions
 
-Der Workflow liegt in `.github/workflows/build.yml`.
+The workflow lives in `.github/workflows/build.yml`.
 
-- Läuft bei Pushes auf `main` (nur bei Änderungen an `Containerfile`, `build_files/`, `system_files/`, `image-template.env` oder dem Workflow selbst), bei Pull Requests sowie manuell über **Actions → Build and push bootc image → Run workflow**.
-- Baut das Image mit Docker Buildx und pusht `stable` und `latest` nach GHCR.
-- Nutzt das eingebaute `GITHUB_TOKEN`; zusätzliche Secrets sind nicht nötig. Die Workflow-Permissions `contents: read` und `packages: write` sind gesetzt.
+- Runs on pushes to `main` (only when `Containerfile`, `build_files/`, `system_files/`, `image-template.env`, or the workflow itself changes), on pull requests, and manually via **Actions → Build and push bootc image → Run workflow**.
+- Builds the image with Docker Buildx and pushes `stable` and `latest` to GHCR.
+- Uses the built-in `GITHUB_TOKEN`; no additional secrets are required. The workflow permissions `contents: read` and `packages: write` are set.
 
-Falls das Image nach dem ersten Push nicht öffentlich ist, im Repository unter **Packages** die Sichtbarkeit des Pakets auf public stellen.
+If the image is not public after the first push, set the package visibility to public under **Packages** in the repository.
 
-## Anpassungen
+## Customization
 
-- `build_files/build.sh` – Pakete installieren, systemd-Units aktivieren, Aufräumarbeiten
-- `system_files/` – Dateien, die nach `/` kopiert werden
-- `Containerfile` – Basisimage und Build-Schritte
-- `image-template.env` – lokaler Image-Name, Registry und Tag
+- `build_files/build.sh` – install packages, enable systemd units, clean up
+- `system_files/` – files copied into `/`
+- `Containerfile` – base image and build steps
+- `image-template.env` – local image name, registry, and tag
 
-Die Basis ist im `Containerfile` mit Tag und Digest gepinnt. Beim Wechsel der Basis ebenfalls einen Digest ergänzen:
+The base image is pinned by tag and digest in the `Containerfile`. When switching the base, add a digest as well:
 
 ```dockerfile
 ARG BASE_IMAGE=ghcr.io/ublue-os/bazzite-nvidia-open:stable@sha256:...
@@ -77,18 +77,18 @@ ARG BASE_IMAGE=ghcr.io/ublue-os/bazzite-nvidia-open:stable@sha256:...
 
 ## Updates
 
-Basis-Image und GitHub Actions sind per Digest bzw. Commit-SHA gepinnt. Renovate (`renovate.json`) schlägt Aktualisierungen als Pull Request vor.
+The base image and GitHub Actions are pinned by digest and commit SHA respectively. Renovate (`renovate.json`) proposes updates as pull requests.
 
 ## Registry
 
-GHCR ist für öffentliche Images kostenlos. Pull des veröffentlichten Images:
+GHCR is free for public images. Pull the published image:
 
 ```bash
 podman pull ghcr.io/lmv4corbeau/toschu-os:stable
 ```
 
-## Sicherheit
+## Security
 
-- Images sind derzeit **nicht signiert**.
-- `cosign.key` und Registry-Tokens niemals committen.
-- Für öffentliche Repositories ist eine FLOSS-Lizenz erforderlich.
+- Images are currently **unsigned**.
+- Never commit `cosign.key` or registry tokens.
+- Public repositories require a FLOSS license.

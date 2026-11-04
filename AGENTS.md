@@ -58,5 +58,5 @@ sudo rpm-ostree rebase ostree-unverified-registry:docker://ghcr.io/lmv4corbeau/t
 - Images are unsigned. Do not add signing steps without providing cosign keys as secrets, and never commit `cosign.key`.
 - Keep `IMAGE_NAME`, `IMAGE_OWNER`, `IMAGE_REGISTRY`, and `DEFAULT_TAG` in sync between `image-template.env` and the `env:` block in `.github/workflows/build.yml`; keep the repository URLs in `Containerfile` and `system_files/etc/toschu-os-release` in sync with the GitHub repo.
 - Keep the `BASE_IMAGE` tag (`:stable`) alongside its digest so Renovate knows which update channel to follow. Do not drop the digest or replace it with a plain tag.
-- `README.md` is user-facing and written in German; update it when changing image name, registry, or tags.
+- `README.md` is user-facing and written in English; update it when changing image name, registry, or tags.
 - `../homelab` and `../heimdall` are separate repositories; do not import their Ansible conventions here.
