@@ -4,11 +4,12 @@ Custom bootc/OCI image derived from Bazzite, built with Universal Blue's image-t
 
 ## Layout
 
-- `Containerfile` — multi-stage build. The `ctx` stage exposes `build_files/` and `system_files/` at `/ctx`; `BASE_IMAGE` defaults to `ghcr.io/ublue-os/bazzite:stable`. Runs `/ctx/build.sh`, then `bootc container lint`.
+- `Containerfile` — multi-stage build. The `ctx` stage exposes `build_files/` and `system_files/` at `/ctx`; `BASE_IMAGE` is pinned to `ghcr.io/ublue-os/bazzite:stable@sha256:...`. Runs `/ctx/build.sh`, then `bootc container lint`.
 - `build_files/build.sh` — runs as root in the build container with `set -euxo pipefail`; installs packages and copies `/ctx/system_files/.` into `/`.
 - `system_files/` — files copied into the image root; includes `/etc/toschu-os-release`.
 - `image-template.env` — image name, registry, owner, tag; auto-loaded by the `Justfile`.
-- `.github/workflows/build.yml` — GitHub Actions build and push.
+- `.github/workflows/build.yml` — GitHub Actions build and push. Every `uses:` is pinned to a full commit SHA.
+- `renovate.json` — Renovate config; updates action SHAs and the base-image digest.
 
 ## Commands
 
@@ -41,6 +42,7 @@ sudo rpm-ostree rebase ostree-unverified-registry:docker://ghcr.io/lmv4corbeau/t
 ## GitHub Actions
 
 - Runs on `ubuntu-24.04` with Docker Buildx (`docker/build-push-action`), not Buildah or Podman.
+- Actions are pinned to full commit SHAs with a version comment (e.g. `# v4.4.0`). Do not replace them with moving tags like `@v4`; Renovate updates the SHA and comment.
 - Uses the built-in `GITHUB_TOKEN`; workflow permissions are `contents: read` and `packages: write`. No PAT secret is needed in CI.
 - PRs build only; pushes to `main` publish `stable` and `latest` to GHCR.
 - GHCR paths must be lowercase: the account is `LmV4corbeau`, but the registry owner is `lmv4corbeau`.
@@ -55,5 +57,6 @@ sudo rpm-ostree rebase ostree-unverified-registry:docker://ghcr.io/lmv4corbeau/t
 - `bootc container lint` must pass; do not remove it.
 - Images are unsigned. Do not add signing steps without providing cosign keys as secrets, and never commit `cosign.key`.
 - Keep `IMAGE_NAME`, `IMAGE_OWNER`, `IMAGE_REGISTRY`, and `DEFAULT_TAG` in sync between `image-template.env` and the `env:` block in `.github/workflows/build.yml`; keep the repository URLs in `Containerfile` and `system_files/etc/toschu-os-release` in sync with the GitHub repo.
+- Keep the `BASE_IMAGE` tag (`:stable`) alongside its digest so Renovate knows which update channel to follow. Do not drop the digest or replace it with a plain tag.
 - `README.md` is user-facing and written in German; update it when changing image name, registry, or tags.
 - `../homelab` and `../heimdall` are separate repositories; do not import their Ansible conventions here.
