@@ -1,10 +1,12 @@
+# Base image. Override with --build-arg BASE_IMAGE=... if needed.
+# Must be declared before the first FROM so Docker can use it in FROM.
+ARG BASE_IMAGE=ghcr.io/ublue-os/bazzite:stable
+
 # Allow build scripts to be referenced without being copied into the final image
 FROM scratch AS ctx
 COPY build_files /
 COPY system_files /system_files
 
-# Base image. Override with --build-arg BASE_IMAGE=... if needed.
-ARG BASE_IMAGE=ghcr.io/ublue-os/bazzite:stable
 FROM ${BASE_IMAGE}
 
 LABEL org.opencontainers.image.title="toschu-os"
