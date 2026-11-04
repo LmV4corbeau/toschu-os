@@ -2,5 +2,25 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["config:best-practices", "helpers:pinGitHubActionDigests"],
   "rebaseWhen": "never",
-  "pinDigests": true
+  "pinDigests": true,
+  "customManagers": [
+    {
+      "customType": "regex",
+      "managerFilePatterns": ["/^config/tools\\.yml$/"],
+      "matchStrings": [
+        "(?m)^[ \\t]*- name: (?<depName>[^\\s]+)[ \\t]*\\n[ \\t]+version: \"(?<currentValue>[^\"]+)\"[ \\t]*\\n[ \\t]+repo: (?<registryUrl>[^\\s]+)"
+      ],
+      "datasourceTemplate": "rpm",
+      "versioningTemplate": "rpm"
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": ["/^config/apps\\.yml$/"],
+      "matchStrings": [
+        "(?m)^[ \\t]*- name: (?<depName>[^\\s]+)[ \\t]*\\n[ \\t]+repo: (?<packageName>[^\\s]+)[ \\t]*\\n[ \\t]+version: \"(?<currentValue>[^\"]+)\""
+      ],
+      "datasourceTemplate": "github-releases",
+      "versioningTemplate": "semver-coerced"
+    }
+  ]
 }

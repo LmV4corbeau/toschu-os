@@ -4,12 +4,17 @@ Custom bootc/OCI image derived from Bazzite, built with Universal Blue's image-t
 
 ## Layout
 
-- `Containerfile` — multi-stage build. The `ctx` stage exposes `build_files/` and `system_files/` at `/ctx`; `BASE_IMAGE` is pinned to `ghcr.io/ublue-os/bazzite:stable@sha256:...`. Runs `/ctx/build.sh`, then `bootc container lint`.
-- `build_files/build.sh` — runs as root in the build container with `set -euxo pipefail`; installs packages and copies `/ctx/system_files/.` into `/`.
+- `Containerfile` — multi-stage build. The `ctx` stage exposes `build_files/`, `config/`, and `system_files/` at `/ctx`; `BASE_IMAGE` is pinned to `ghcr.io/ublue-os/bazzite:stable@sha256:...`. Runs `/ctx/build.sh`, then `bootc container lint`.
+- `build_files/build.sh` — runs as root in the build container with `set -euxo pipefail`; copies `/ctx/system_files/.` into `/`, then calls the installer scripts.
+- `build_files/install-tools.sh` — installs pinned DNF/COPR packages and enables systemd units from `config/tools.yml`.
+- `build_files/install-apps.sh` — installs Flatpak apps and pinned AppImages from `config/apps.yml`.
+- `build_files/lib.sh` — shared helpers; downloads a pinned `yq` binary and verifies its SHA256.
+- `config/tools.yml` — DNF packages (exact version-release plus repo URL), optional COPR packages, systemd units.
+- `config/apps.yml` — Flatpak apps (unpinned, see issue #13) and AppImages (exact version plus SHA256).
 - `system_files/` — files copied into the image root; includes `/etc/toschu-os-release`.
 - `image-template.env` — image name, registry, owner, tag; auto-loaded by the `Justfile`.
 - `.github/workflows/build.yml` — GitHub Actions build and push. Every `uses:` is pinned to a full commit SHA.
-- `renovate.json` — Renovate config; updates action SHAs and the base-image digest.
+- `renovate.json` — Renovate config; updates action SHAs, the base-image digest, pinned DNF packages, and AppImage versions.
 
 ## Commands
 
@@ -46,14 +51,18 @@ sudo rpm-ostree rebase ostree-unverified-registry:docker://ghcr.io/lmv4corbeau/t
 - Uses the built-in `GITHUB_TOKEN`; workflow permissions are `contents: read` and `packages: write`. No PAT secret is needed in CI.
 - PRs build only; pushes to `main` publish `stable` and `latest` to GHCR.
 - GHCR paths must be lowercase: the account is `LmV4corbeau`, but the registry owner is `lmv4corbeau`.
-- The workflow triggers on pushes to `main` only when `Containerfile`, `build_files/**`, `system_files/**`, `image-template.env`, or the workflow itself changes; use `workflow_dispatch` for other rebuilds.
+- The workflow triggers on pushes to `main` only when `Containerfile`, `build_files/**`, `config/**`, `system_files/**`, `image-template.env`, or the workflow itself changes; use `workflow_dispatch` for other rebuilds.
 - After the first push, the GHCR package may be private; set its visibility to public in the repository's **Packages** settings if needed.
 
 ## Build gotchas
 
 - `dnf5` is available in Bazzite; RPM Fusion is already enabled.
+- Add packages to `config/tools.yml`, not directly to `build_files/build.sh`. Every DNF package needs `name`, exact `version` (version-release), and `repo`.
+- `repo` must point at the repository's `repodata/` directory (Renovate's `rpm` datasource reads `repomd.xml` from it). Use the `updates` repo when it carries the package, otherwise the `releases` repo.
 - Enable COPRs only for the install, then disable them again (`dnf5 copr disable ...`).
-- The `RUN --mount=type=bind,from=ctx` stage is required because `build.sh` and `system_files/` must not be copied into the final image.
+- Flatpak apps are intentionally unpinned until issue #13 is resolved. AppImages require `version` and `sha256`; Renovate updates the version but not the checksum.
+- `build_files/lib.sh` downloads `yq` at build time and verifies its SHA256. Update `YQ_VERSION` and both architecture checksums together.
+- The `RUN --mount=type=bind,from=ctx` stage is required because `build_files/`, `config/`, and `system_files/` must not be copied into the final image.
 - `bootc container lint` must pass; do not remove it.
 - Images are unsigned. Do not add signing steps without providing cosign keys as secrets, and never commit `cosign.key`.
 - Keep `IMAGE_NAME`, `IMAGE_OWNER`, `IMAGE_REGISTRY`, and `DEFAULT_TAG` in sync between `image-template.env` and the `env:` block in `.github/workflows/build.yml`; keep the repository URLs in `Containerfile` and `system_files/etc/toschu-os-release` in sync with the GitHub repo.

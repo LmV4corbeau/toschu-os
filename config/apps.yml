@@ -1,0 +1,17 @@
+# Flatpak apps are installed from the remote without version pinning.
+# Pinned Flatpak support is tracked in issue #13:
+# https://github.com/LmV4corbeau/toschu-os/issues/13
+flatpak:
+  remote: flathub
+  url: https://flathub.org/repo/flathub.flatpakrepo
+  apps: []
+  # - org.mozilla.firefox
+
+# AppImages are pinned to an exact version and verified by SHA256.
+# The `repo` field is used by Renovate to check GitHub releases.
+appimage: []
+# - name: example-tool
+#   repo: owner/repo
+#   version: "1.2.3"
+#   url: https://github.com/owner/repo/releases/download/v{{version}}/Example-{{version}}-x86_64.AppImage
+#   sha256: "..."

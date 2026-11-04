@@ -1,0 +1,20 @@
+# DNF packages are pinned to exact version-release values.
+# The `repo` URL is used by Renovate to check for updates.
+dnf:
+  packages:
+    - name: tmux
+      version: "3.7c-1.fc45"
+      repo: https://mirrors.kernel.org/fedora/releases/45/Everything/x86_64/os/repodata/
+
+# Optional COPR packages. The repository is enabled only for the install and
+# disabled again afterwards.
+# copr:
+#   - name: ublue-os/staging
+#     packages:
+#       - name: some-package
+#         version: "1.2.3-1"
+#         repo: https://copr.fedorainfracloud.org/coprs/ublue-os/staging/repo/fedora-45-x86_64/repodata/
+
+systemd:
+  enable: []
+  # - podman.socket

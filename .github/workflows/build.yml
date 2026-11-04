@@ -8,6 +8,7 @@ on:
     paths:
       - "Containerfile"
       - "build_files/**"
+      - "config/**"
       - "system_files/**"
       - "image-template.env"
       - ".github/workflows/build.yml"

@@ -5,6 +5,7 @@ ARG BASE_IMAGE=ghcr.io/ublue-os/bazzite:stable@sha256:9ef3035588c6760e96c5064a19
 # Allow build scripts to be referenced without being copied into the final image
 FROM scratch AS ctx
 COPY build_files /
+COPY config /config
 COPY system_files /system_files
 
 FROM ${BASE_IMAGE}
