@@ -1,0 +1,48 @@
+#!/bin/bash
+# Create the prebuilt Distrobox containers on first login.
+#
+# This runs as a systemd user service, so it is rootless and per-user.
+# The manifest is generated at image build time from config/distrobox.yml.
+
+set -euo pipefail
+
+readonly MANIFEST="${TOSCHU_DISTROBOX_MANIFEST:-/etc/distrobox/toschu.ini}"
+
+if [ "${EUID}" -eq 0 ]; then
+  echo "toschu-distrobox-setup: refusing to run as root" >&2
+  exit 0
+fi
+
+if ! command -v distrobox >/dev/null 2>&1; then
+  echo "toschu-distrobox-setup: distrobox not found, skipping" >&2
+  exit 0
+fi
+
+if [ ! -r "$MANIFEST" ]; then
+  echo "toschu-distrobox-setup: $MANIFEST not found, skipping" >&2
+  exit 0
+fi
+
+if ! grep -Eq '^\[[^]]+\][[:space:]]*$' "$MANIFEST"; then
+  echo "toschu-distrobox-setup: no containers configured, skipping"
+  exit 0
+fi
+
+: "${HOME:?HOME is not set}"
+state_home="${XDG_STATE_HOME:-$HOME/.local/state}"
+marker="$state_home/toschu-os/distrobox-setup.sha256"
+hash="$(sha256sum "$MANIFEST" | awk '{print $1}')"
+
+if [ -f "$marker" ] && [ "$(cat "$marker")" = "$hash" ]; then
+  exit 0
+fi
+
+mkdir -p "$(dirname "$marker")"
+
+echo "toschu-distrobox-setup: creating containers from $MANIFEST"
+if DBX_NON_INTERACTIVE=1 distrobox assemble create --file "$MANIFEST"; then
+  printf '%s\n' "$hash" >"$marker"
+else
+  echo "toschu-distrobox-setup: distrobox assemble failed; will retry on the next timer run" >&2
+  exit 1
+fi

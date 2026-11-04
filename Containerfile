@@ -6,6 +6,7 @@ ARG BASE_IMAGE=ghcr.io/ublue-os/bazzite:stable@sha256:9ef3035588c6760e96c5064a19
 FROM scratch AS ctx
 COPY build_files /
 COPY config /config
+COPY distrobox /distrobox
 COPY system_files /system_files
 
 FROM ${BASE_IMAGE}

@@ -21,6 +21,22 @@
       ],
       "datasourceTemplate": "github-releases",
       "versioningTemplate": "semver-coerced"
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": ["/^config/distrobox\\.yml$/"],
+      "matchStrings": [
+        "(?m)^[ \\t]+base: (?<depName>[^\\s@]+):(?<currentValue>[^@\\s]+)@(?<currentDigest>sha256:[a-f0-9]{64})[ \\t]*$"
+      ],
+      "datasourceTemplate": "docker",
+      "versioningTemplate": "docker"
+    }
+  ],
+  "packageRules": [
+    {
+      "matchDatasources": ["docker"],
+      "matchFileNames": ["config/distrobox.yml", "distrobox/**/Containerfile"],
+      "groupName": "Distrobox base images"
     }
   ]
 }

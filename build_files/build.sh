@@ -9,5 +9,8 @@ cp -avf "/ctx/system_files"/. /
 bash /ctx/install-tools.sh
 bash /ctx/install-apps.sh
 
+# Validate config/distrobox.yml and write /etc/distrobox/toschu.ini.
+bash /ctx/install-distrobox.sh
+
 # Do not leave the build-time YAML parser in the final image.
 rm -f /tmp/yq

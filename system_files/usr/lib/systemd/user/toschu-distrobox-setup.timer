@@ -1,0 +1,11 @@
+[Unit]
+Description=Create prebuilt Distrobox containers on first login
+Documentation=https://github.com/LmV4corbeau/toschu-os
+
+[Timer]
+OnStartupSec=1min
+OnUnitInactiveSec=6h
+Unit=toschu-distrobox-setup.service
+
+[Install]
+WantedBy=timers.target

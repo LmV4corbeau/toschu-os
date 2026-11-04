@@ -34,7 +34,9 @@ push-image:
 # Run ShellCheck on all shell scripts.
 lint:
     find . -iname "*.sh" -type f -exec shellcheck "{}" ";"
+    shellcheck system_files/usr/local/bin/toschu-distrobox-setup
 
 # Format all shell scripts.
 format:
     find . -iname "*.sh" -type f -exec shfmt --write "{}" ";"
+    shfmt --write system_files/usr/local/bin/toschu-distrobox-setup
