@@ -1,0 +1,38 @@
+# Prebuilt Distrobox images and the containers created on first login.
+#
+# Images are built and published by .github/workflows/distrobox.yml.
+# Containers are written to /etc/distrobox/toschu.ini at bootc build time and
+# created and kept up to date by the toschu-distrobox-setup systemd user timer.
+#
+# To enable the example, replace `images: {}` with `images:` and uncomment the
+# block below. Do the same for `containers: {}`.
+images: {}
+#  example:
+#    # Directory containing the Containerfile, relative to the repository root.
+#    context: distrobox/example
+#    # Published image reference. It must use the
+#    # ghcr.io/lmv4corbeau/toschu-os-distrobox/ prefix and the same name as
+#    # this entry.
+#    ref: ghcr.io/lmv4corbeau/toschu-os-distrobox/example:latest
+#    # Base image with a tag and digest. Passed to the Containerfile as
+#    # BASE_IMAGE.
+#    base: ghcr.io/ublue-os/fedora-toolbox:latest@sha256:152d578a893dc0d96239f92b50e46d3d238c0b4aebca89094ee118f3a407af77
+#    # Target platforms. They must be supported by the base image.
+#    platforms:
+#      - linux/amd64
+#    # Optional packages, passed to the Containerfile as PACKAGES.
+#    packages:
+#      - git
+#      - zsh
+
+containers: {}
+#  example:
+#    # Either a key from `images` or a full image reference.
+#    image: example
+#    pull: true
+#    nvidia: false
+#    init: false
+#    # Replace an existing container when this manifest changes.
+#    replace: false
+#    exported_apps: []
+#    exported_bins: []

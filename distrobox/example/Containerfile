@@ -1,0 +1,17 @@
+# Template for a prebuilt Distrobox image.
+#
+# The distrobox workflow passes BASE_IMAGE and PACKAGES from
+# config/distrobox.yml. Replace the dnf block if you use an apt- or
+# pacman-based base image.
+ARG BASE_IMAGE
+FROM ${BASE_IMAGE}
+
+ARG PACKAGES=""
+
+RUN if [ -n "${PACKAGES}" ]; then \
+      dnf install -y --setopt=install_weak_deps=False ${PACKAGES} && \
+      dnf clean all; \
+    fi
+
+LABEL org.opencontainers.image.title="toschu-os distrobox example"
+LABEL org.opencontainers.image.source="https://github.com/LmV4corbeau/toschu-os"

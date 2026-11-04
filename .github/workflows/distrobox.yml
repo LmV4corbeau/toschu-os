@@ -1,0 +1,112 @@
+---
+name: Build Distrobox images
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "config/distrobox.yml"
+      - "distrobox/**"
+      - "build_files/yq-version.env"
+      - ".github/scripts/distrobox-matrix.py"
+      - ".github/workflows/distrobox.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "config/distrobox.yml"
+      - "distrobox/**"
+      - "build_files/yq-version.env"
+      - ".github/scripts/distrobox-matrix.py"
+      - ".github/workflows/distrobox.yml"
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+
+concurrency:
+  group: distrobox-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  matrix:
+    name: Resolve image matrix
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+      has_images: ${{ steps.matrix.outputs.has_images }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Install pinned yq
+        run: |
+          set -euo pipefail
+          source build_files/yq-version.env
+          curl -fsSL -o /tmp/yq \
+            "https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/yq_linux_amd64"
+          printf '%s  %s\n' "$YQ_SHA256_AMD64" /tmp/yq | sha256sum -c -
+          chmod +x /tmp/yq
+          /tmp/yq -o=json '.' config/distrobox.yml > /tmp/distrobox.json
+
+      - name: Build matrix
+        id: matrix
+        run: |
+          set -euo pipefail
+          matrix="$(python3 .github/scripts/distrobox-matrix.py /tmp/distrobox.json)"
+          has_images="$(python3 -c 'import json, sys; print("true" if json.loads(sys.argv[1])["include"] else "false")' "$matrix")"
+          echo "matrix=${matrix}" >> "$GITHUB_OUTPUT"
+          echo "has_images=${has_images}" >> "$GITHUB_OUTPUT"
+
+  build:
+    name: Build ${{ matrix.name }}
+    needs: matrix
+    if: needs.matrix.outputs.has_images == 'true'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.matrix.outputs.matrix) }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Set up QEMU
+        if: github.event_name != 'pull_request' && contains(matrix.platforms, 'linux/arm64')
+        uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130 # v3.7.0
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
+
+      - name: Log in to GHCR
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.context }}/Containerfile
+          build-args: |
+            BASE_IMAGE=${{ matrix.base }}
+            PACKAGES=${{ matrix.packages }}
+          platforms: ${{ github.event_name == 'pull_request' && 'linux/amd64' || matrix.platforms }}
+          push: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
+          load: ${{ github.event_name == 'pull_request' }}
+          tags: ${{ matrix.ref }}
+          cache-from: type=gha,scope=${{ matrix.name }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.name }}
+
+      - name: Smoke test
+        if: github.event_name == 'pull_request'
+        run: |
+          docker run --rm --entrypoint /bin/sh "${{ matrix.ref }}" -c 'echo "smoke test ok"'

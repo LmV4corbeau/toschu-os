@@ -1,0 +1,8 @@
+[Unit]
+Description=Create and update prebuilt Distrobox containers
+Documentation=https://github.com/LmV4corbeau/toschu-os
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/toschu-distrobox-setup
+TimeoutStartSec=0
